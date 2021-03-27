@@ -193,7 +193,44 @@ public class FreematicsProtocolDecoder extends BaseProtocolDecoder {
             Channel channel, SocketAddress remoteAddress, Object msg) throws Exception {
 
         String sentence = (String) msg;
-        int startIndex = sentence.indexOf('#');
+
+	if (sentence.startsWith("ChaCha")) {
+            // strip prefix
+            System.out.print("[*] FREEMATICS Got encrypted package: ");
+            System.out.println(sentence);
+            String sentence_tmp = sentence.substring("ChaCha".length());
+            int index_eq = sentence_tmp.indexOf('=');
+            while (index_eq > 0) {
+                sentence_tmp = sentence_tmp.substring(0, sentence_tmp.length()-1);
+                index_eq = sentence_tmp.indexOf('=');
+            }
+            // base64 decode the rest
+            byte[] sentence_barr = Base64.getDecoder().decode(sentence_tmp);
+            int nonce_length = 12;
+            byte[] nonce = new byte[nonce_length];
+            for (int i = 0; i < nonce_length; i++) {
+                nonce[i] = sentence_barr[i];
+            }
+            byte[] cipher = new byte[sentence_barr.length - nonce_length];
+            for (int i = 0; i < sentence_barr.length - nonce_length; i++) {
+                cipher[i] = sentence_barr[i+nonce_length];
+
+            }
+            // ChaCha20 decrypt with known key
+            System.out.println(Arrays.toString(nonce));
+            Cipher chacha = Cipher.getInstance("ChaCha20");
+            ChaCha20ParameterSpec chachaSpec = new ChaCha20ParameterSpec(nonce, 0);
+            byte[] key_bytes = "e3dbac1bc7d0dab7b6acdfd9a9be8a5e".getBytes(StandardCharsets.US_ASCII);
+            System.out.println(Arrays.toString(key_bytes));
+            SecretKey key = new SecretKeySpec(key_bytes, 0, key_bytes.length, "ChaCha20");
+            chacha.init(Cipher.DECRYPT_MODE, key, chachaSpec);
+            byte[] encryptedResult = chacha.doFinal(cipher);
+            sentence = new String(encryptedResult, StandardCharsets.UTF_8);
+            System.out.print("[*] FREEMATICS Got decrypted result: ");
+            System.out.println(sentence);
+        }
+
+	int startIndex = sentence.indexOf('#');
         int endIndex = sentence.indexOf('*');
 
         if (startIndex > 0 && endIndex > 0) {
