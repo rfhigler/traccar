@@ -196,8 +196,6 @@ public class FreematicsProtocolDecoder extends BaseProtocolDecoder {
 
 	if (sentence.startsWith("ChaCha")) {
             // strip prefix
-            System.out.print("[*] FREEMATICS Got encrypted package: ");
-            System.out.println(sentence);
             String sentence_tmp = sentence.substring("ChaCha".length());
             int index_eq = sentence_tmp.indexOf('=');
             while (index_eq > 0) {
@@ -217,17 +215,13 @@ public class FreematicsProtocolDecoder extends BaseProtocolDecoder {
 
             }
             // ChaCha20 decrypt with known key
-            System.out.println(Arrays.toString(nonce));
             Cipher chacha = Cipher.getInstance("ChaCha20");
             ChaCha20ParameterSpec chachaSpec = new ChaCha20ParameterSpec(nonce, 0);
             byte[] key_bytes = "e3dbac1bc7d0dab7b6acdfd9a9be8a5e".getBytes(StandardCharsets.US_ASCII);
-            System.out.println(Arrays.toString(key_bytes));
             SecretKey key = new SecretKeySpec(key_bytes, 0, key_bytes.length, "ChaCha20");
             chacha.init(Cipher.DECRYPT_MODE, key, chachaSpec);
             byte[] encryptedResult = chacha.doFinal(cipher);
             sentence = new String(encryptedResult, StandardCharsets.UTF_8);
-            System.out.print("[*] FREEMATICS Got decrypted result: ");
-            System.out.println(sentence);
         }
 
 	int startIndex = sentence.indexOf('#');
